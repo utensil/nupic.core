@@ -20,45 +20,14 @@
  * ---------------------------------------------------------------------
  */
 
-#include <map>
-#include <vector>
+/** @file STL IO 
+ * This file contains functions to print out and save/load various STL data structures.
+ */
 
-#include <nta/algorithms/classifier_result.hpp>
-#include <nta/types/types.hpp>
+#include <nta/math/StlIo.hpp>
 
-using namespace std;
+namespace nta {
 
-namespace nta
-{
-  namespace algorithms
-  {
-    namespace cla_classifier
-    {
+  IOControl io_control;
 
-      ClassifierResult::~ClassifierResult()
-      {
-        for (map<Int, vector<Real64>*>::const_iterator it = result_.begin();
-             it != result_.end(); ++it)
-        {
-          delete it->second;
-        }
-      }
-
-      vector<Real64>* ClassifierResult::createVector(Int step, UInt size,
-                                                Real64 value)
-      {
-        vector<Real64>* v;
-        map<Int, vector<Real64>*>::const_iterator it = result_.find(step);
-        if (it != result_.end())
-        {
-          v = it->second;
-        } else {
-          v = new vector<Real64>(size, value);
-          result_.insert(pair<Int, vector<Real64>*>(step, v));
-        }
-        return v;
-      }
-
-    } // end namespace cla_classifier
-  } // end namespace algorithms
 } // end namespace nta
