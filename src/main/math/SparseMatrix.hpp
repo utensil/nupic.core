@@ -33,13 +33,13 @@
 #include <cstdio> // sprintf
 #include <boost/unordered_set.hpp>
 
-#include <nta/math/utils.hpp>
+#include <nta/math/Utils.hpp>
 #include <nta/ntypes/MemParser.hpp>
 #include <nta/ntypes/MemStream.hpp>
 
-#include <nta/math/math.hpp>
-#include <nta/math/array_algo.hpp>
-#include <nta/math/stl_io.hpp>
+#include <nta/math/Math.hpp>
+#include <nta/math/ArrayAlgo.hpp>
+#include <nta/math/StlIo.hpp>
 
 //--------------------------------------------------------------------------------
 
@@ -3009,10 +3009,10 @@ namespace nta {
 
       bool littleEndian_bool = littleEndian == 1;
 
-      if (littleEndian_bool != IsSystemLittleEndian()) {
-        SwapBytesInPlace(nnzr_, nrows_max_);
-        SwapBytesInPlace(ind_mem_, nnz);
-        SwapBytesInPlace(nz_mem_, nnz);
+      if (littleEndian_bool != isSystemLittleEndian()) {
+        swapBytesInPlace(nnzr_, nrows_max_);
+        swapBytesInPlace(ind_mem_, nnz);
+        swapBytesInPlace(nz_mem_, nnz);
       }
 
       size_type *curr_ind_ptr = ind_mem_;
@@ -3053,7 +3053,7 @@ namespace nta {
       const size_type nnz = nNonZeros();
 
       outStream << "sm_bin_1.5 "
-                << (int) IsSystemLittleEndian() << ' '
+                << (int) isSystemLittleEndian() << ' '
                 << sizeof(size_type) << ' '
                 << sizeof(value_type) << ' '
                 << sizeof(difference_type) << ' '

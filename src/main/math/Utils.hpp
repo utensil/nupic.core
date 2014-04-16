@@ -44,7 +44,7 @@
 
 #include <boost/shared_array.hpp>
 
-#include <nta/types/types.hpp>
+#include <nta/types/Types.hpp>
 #include <nta/utils/Log.hpp>
 
 namespace nta {
@@ -77,12 +77,12 @@ namespace nta {
 */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
-  inline bool IsSystemLittleEndian()
+  inline bool isSystemLittleEndian()
     { static const char test[2] = { 1, 0 }; return (*(short *) test) == 1; }
 #pragma GCC diagnostic pop // return back to defaults
 
   template<typename T>
-  inline void SwapBytesInPlace(T *pxIn, Size n)
+  inline void swapBytesInPlace(T *pxIn, Size n)
   {
     union SwapType { T x; unsigned char b[sizeof(T)]; };
     SwapType *px = reinterpret_cast<SwapType *>(pxIn);
@@ -94,7 +94,7 @@ namespace nta {
   }
   
   template<typename T>
-  inline void SwapBytes(T *pxOut, Size n, const T *pxIn)
+  inline void swapBytes(T *pxOut, Size n, const T *pxIn)
   {
     NTA_ASSERT(pxOut != pxIn) << "Use swapBytesInPlace() instead.";
     NTA_ASSERT(!(((pxOut > pxIn) && (pxOut < (pxIn+n))) ||
