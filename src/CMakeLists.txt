@@ -19,8 +19,7 @@
 # http://numenta.org/licenses/
 #
 # Contributor(s):
-#   David Ragazzi (@DavidRagazzi): Full conversion and adaptation from Autotools
-#     scripts
+#   David Ragazzi (@DavidRagazzi): Full conversion and adaptation from Autotools scripts
 #   Jim Bridgewater (jwbwater@gmail.com): Updated option help messages
 # ------------------------------------------------------------------------------
 
@@ -31,7 +30,7 @@
 ################################################################################
 
 # These macros copy all source directories after the configuration is done
-macro (copy suffix src dst)
+macro (copy suffix src dst)  
   message(STATUS "Copying from '${src}' to '${dst}'")
   execute_process(COMMAND ${CMAKE_COMMAND} -E copy${suffix} ${src} ${dst})
 endmacro()
@@ -141,7 +140,7 @@ endmacro()
 macro(generate_static_library name src_dir output_dir cxx_flags)
   get_source_groups(${src_dir})
   add_library(${name}
-    STATIC
+    STATIC 
     ${SOURCE_RETURNED}
   )
   set_target_properties(${name} PROPERTIES COMPILE_FLAGS "${cxx_flags}")
@@ -176,6 +175,7 @@ endmacro()
 
 # This macro gets the compiler family being used.
 # Currently compiler_family can only be one of GNU/CLANG/MSVC/unsupported, more can be added
+# http://www.cmake.org/cmake/help/v2.8.10/cmake.html#variable:CMAKE_LANG_COMPILER_ID
 macro(get_compiler_family compiler_family)
     if(CMAKE_COMPILER_IS_GNUCXX)
       # The compiler is a GNU g++ variant.
@@ -186,10 +186,6 @@ macro(get_compiler_family compiler_family)
       set(${compiler_family} "CLANG")
     elseif(MSVC)
       set(${compiler_family} "MSVC")
-    elseif(BORLAND)
-      set(${compiler_family} "BORLAND")
-    elseif(WATCOM)
-      set(${compiler_family} "WATCOM")
     else()
       # See http://www.cmake.org/Wiki/CMake_Useful_Variables
       set(${compiler_family} "unsupported")
@@ -219,7 +215,7 @@ endif()
 
 #
 # Sets default locations.
-#
+# 
 # Default directories structure is:
 #
 # ~/../repository (root directory with repository downloaded from internet)
@@ -287,12 +283,13 @@ endif()
 # Determine project platform type
 #
 message(STATUS "Checking platform...")
+
 if(${CMAKE_SIZEOF_VOID_P} MATCHES "8")
   set(NTA_PLATFORM_ARCH "64")
 else()
   set(NTA_PLATFORM_ARCH "32")
 endif()
-set(NTA_PLATFORM_CXXFLAGS "-fPIC -DPIC")
+set(NTA_PLATFORM_CXXFLAGS "")
 set(NTA_PLATFORM_LINKFLAGS "")
 set(NTA_PLATFORM_LIBS "-std=c++98")
 if(OSX)
@@ -309,13 +306,19 @@ elseif(LINUX)
   if(${NTA_PLATFORM_ARCH} MATCHES "64")
     set(NTA_PLATFORM_OS "linux64")
     set(NTA_PLATFORM_CXXFLAGS "${NTA_PLATFORM_CXXFLAGS} -m64")
-  else()
+  else()    
     set(NTA_PLATFORM_OS "linux32")
     set(NTA_PLATFORM_CXXFLAGS "${NTA_PLATFORM_CXXFLAGS} -ffloat-store")
   endif()
 elseif(WINDOWS)
-  set(NTA_PLATFORM_OS "win32")
-  set(NTA_PLATFORM_CXXFLAGS "${NTA_PLATFORM_CXXFLAGS} -DWIN32")
+	set(NTA_PLATFORM_CXXFLAGS "${NTA_PLATFORM_CXXFLAGS} /GS /TP /analyze- /W3 /Zc:wchar_t /Gm- /fp:precise /errorReport:prompt /WX- /Zc:forScope /GR /Gd /Oy- /MD /EHs /nologo")
+  set(NTA_PLATFORM_LINKFLAGS "${NTA_PLATFORM_LINKFLAGS} /MACHINE:X64 /NOLOGO /SAFESEH:NO")
+  set(NTA_PLATFORM_LIBS "\"C:/Program Files (x86)/Microsoft Visual Studio 12.0/VC/lib/oldnames.lib\" Psapi.lib")
+  if(${NTA_PLATFORM_ARCH} MATCHES "64")
+    set(NTA_PLATFORM_OS "win32")
+  else()    
+    set(NTA_PLATFORM_OS "win32")
+  endif()
 elseif(SOLARIS)
   set(NTA_PLATFORM_DEBUGFLAGS "-g")
   set(NTA_PLATFORM_LINKFLAGS "${NTA_PLATFORM_LINKFLAGS} -shared-libgcc -m64")
@@ -343,7 +346,7 @@ message(STATUS "Checking software tools...")
 
 #
 # Gives the family of C++ compiler
-#
+# 
 get_compiler_family(NTA_COMPILER_FAMILY)
 
 #
@@ -399,17 +402,29 @@ set(USER_LINKFLAGS "" CACHE STRING "Extra Link flags")
 # #include <nta/common/...>
 #
 include_directories(SYSTEM "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/include" "${REPOSITORY_DIR}/external/common/include")
-set(NTA_INCLUDEFLAGS "-I${CMAKE_INSTALL_PREFIX}/include")
+if(${NTA_COMPILER_FAMILY} STREQUAL "MSVC")
+  set(NTA_INCLUDEFLAGS "/I${CMAKE_INSTALL_PREFIX}/include")
+else()
+  set(NTA_INCLUDEFLAGS "-I${CMAKE_INSTALL_PREFIX}/include")
+endif()
 
 #
 # NTA_INTERNAL tells us that the code is being built under the build system
 # and not as a separate program. Used for cppvision example.
-set(NTA_CXXFLAGS_BASE "${NTA_INCLUDEFLAGS} ${NTA_PLATFORM_CXXFLAGS} -DHAVE_CONFIG_H -DNTA_INTERNAL -DNTA_PLATFORM_${NTA_PLATFORM_OS} -DNTA_COMPILER_${NTA_COMPILER_FAMILY} -DBOOST_NO_WREGEX -DNUPIC2")
+if(${NTA_COMPILER_FAMILY} STREQUAL "MSVC")
+  set(NTA_CXXFLAGS_BASE "${NTA_INCLUDEFLAGS} ${NTA_PLATFORM_CXXFLAGS} /DNTA_INTERNAL /DNTA_PLATFORM_${NTA_PLATFORM_OS} /DNTA_COMPILER_${NTA_COMPILER_FAMILY} /DBOOST_NO_WREGEX /DNUPIC2")
+else()
+  set(NTA_CXXFLAGS_BASE "${NTA_INCLUDEFLAGS} ${NTA_PLATFORM_CXXFLAGS} -DNTA_INTERNAL -DNTA_PLATFORM_${NTA_PLATFORM_OS} -DNTA_COMPILER_${NTA_COMPILER_FAMILY} -DBOOST_NO_WREGEX -DNUPIC2")
+endif()
 
 #
 # All executables and plugins are linked with these flags
 #
-set(NTA_LINKFLAGS "${USER_LINKFLAGS} ${NTA_PLATFORM_LINKFLAGS} ${NTA_PLATFORM_LIBS} -L${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib")
+if(${NTA_COMPILER_FAMILY} STREQUAL "MSVC")
+  set(NTA_LINKFLAGS "${USER_LINKFLAGS} ${NTA_PLATFORM_LINKFLAGS} ${NTA_PLATFORM_LIBS} /NODEFAULTLIB:LIBCMT /LIBPATH:${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib")
+else()
+  set(NTA_LINKFLAGS "${USER_LINKFLAGS} ${NTA_PLATFORM_LINKFLAGS} ${NTA_PLATFORM_LIBS} -L${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib")
+endif()
 
 message(STATUS "Options:")
 
@@ -420,7 +435,11 @@ option(NTA_OPTIMIZATION_ENABLED "-DNTA_OPTIMIZATION_ENABLED=[ON/OFF] turn on opt
 if(NTA_OPTIMIZATION_ENABLED)
   # -ftree-vectorize conflicts with -no-tree-aliasing on leopard, so removed
   # flag NTA_ASM enables/disables our hand tuned assbembly code (SSE), but it's available only for some platform
-  set(NTA_CXXFLAGS_OPTIMIZATION "-O3 -pipe -DNTA_ASM")
+  if(${NTA_COMPILER_FAMILY} STREQUAL "MSVC")
+    set(NTA_CXXFLAGS_OPTIMIZATION "-DNTA_ASM")
+  else()
+    set(NTA_CXXFLAGS_OPTIMIZATION "-O3 -pipe -DNTA_ASM")
+  endif()
 else()
   set(NTA_CXXFLAGS_OPTIMIZATION "-O0 -fno-inline")
 endif()
@@ -440,10 +459,18 @@ message(STATUS "  Debug Symbols: ${NTA_DEBUGSYMBOLS_ENABLED}")
 # Enable/disable NTA_ASSERT.
 #
 option(NTA_ASSERTIONS_ENABLED "-DNTA_ASSERTIONS_ENABLED=[ON/OFF] turn on assertions [default=ON]" ON)
-if(NTA_ASSERTIONS_ENABLED)
-  set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -DNTA_ASSERTIONS_ON")
+if(${NTA_COMPILER_FAMILY} STREQUAL "MSVC")
+  if(NTA_ASSERTIONS_ENABLED)
+    set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} /DNTA_ASSERTIONS_ON")
+  else()
+    set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} /DNDEBUG")
+  endif()
 else()
-  set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -DNDEBUG")
+  if(NTA_ASSERTIONS_ENABLED)
+    set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -DNTA_ASSERTIONS_ON")
+  else()
+    set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -DNDEBUG")
+  endif()
 endif()
 message(STATUS "  Assertions: ${NTA_ASSERTIONS_ENABLED}")
 
@@ -461,7 +488,7 @@ message(STATUS "  Profiling: ${NTA_PROFILING_ENABLED}")
 # Enable/disable Coverage (this option is mainly used for generating test coverage reports).
 #
 option(NTA_COV_ENABLED "-DNTA_COV_ENABLED=[ON/OFF] turn on test coverage [default=OFF]" OFF)
-if(NTA_COV_ENABLED)
+if(NTA_COV_ENABLED)  
   if(${NTA_COMPILER_FAMILY} STREQUAL "GNU")
     set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -fprofile-arcs -ftest-coverage")
     set(LIB_STATIC_COV gcov)
@@ -486,7 +513,7 @@ message(STATUS "  MPI Support: ${NTA_MPI_SUPPORT}")
 # Compiler specific (clang, gcc, ..) flags can be set here
 #
 if(${NTA_COMPILER_FAMILY} STREQUAL "GNU")
-  set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -fvisibility=hidden -Wall -Wreturn-type -Wunused -Wno-sign-compare -Wno-error=format=")
+  set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -fPIC -DPIC -DHAVE_CONFIG_H -DHAVE_UNISTD_H -fvisibility=hidden -Wall -Wreturn-type -Wunused -Wno-unused-parameter -Wno-sign-compare -Wno-error=format=")
   set(NTA_CXXFLAGS_OPTIMIZATION "${NTA_CXXFLAGS_OPTIMIZATION} -falign-loops=16")
   # workaround for gcc 4.4 in Grok
   execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
@@ -495,12 +522,9 @@ if(${NTA_COMPILER_FAMILY} STREQUAL "GNU")
   endif()
   set(NTA_LINKFLAGS_ARCHIVES "-Wl,-whole-archive")
 elseif(${NTA_COMPILER_FAMILY} STREQUAL "CLANG")
-  set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -fvisibility=hidden -Wall -Wreturn-type -Wunused -Wno-unused-parameter")
+  set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} -fPIC -DPIC -DHAVE_CONFIG_H -DHAVE_UNISTD_H -fvisibility=hidden -Wall -Wreturn-type -Wunused -Wno-unused-parameter")
 elseif(${NTA_COMPILER_FAMILY} EQUAL "MSVC")
-  # TODO: add VC-specific compiler options
-  # define NOMINMAX to avoid MSVC to define min() and max() as macros,
-  # see http://support.microsoft.com/kb/143208 , http://msdn.microsoft.com/en-us/library/hhzbb5c8.aspx
-  set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} /DNOMINMAX")
+  set(NTA_CXXFLAGS_BASE "${NTA_CXXFLAGS_BASE} /DWIN32 /D_WINDOWS /DNDEBUG /DPSAPI_VERSION=1 /DNOMINMAX /DAPR_DECLARE_STATIC /DAPU_DECLARE_STATIC /DZLIB_WINAPI /D_MBCS /D_CRT_SECURE_NO_WARNINGS")
 else()
 # TODO: What compilers is it for? Should it be more explicit?
   set(NTA_LINKFLAGS_ARCHIVES "-Wl,-force_load")
@@ -524,11 +548,11 @@ set(NTA_CXXFLAGS "${USER_CXXFLAGS} ${NTA_CXXFLAGS_BASE} ${NTA_CXXFLAGS_OPTIMIZAT
 #
 set(LIB_STATIC_APR1 apr-1)
 add_library(${LIB_STATIC_APR1} STATIC IMPORTED)
-set_property(TARGET ${LIB_STATIC_APR1} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/libapr-1.${STATIC_LIB_EXTENSION}")
+set_property(TARGET ${LIB_STATIC_APR1} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/${LIB_PREFIX}apr-1.${STATIC_LIB_EXTENSION}")
 
 set(LIB_STATIC_APRUTIL1 aprutil-1)
 add_library(${LIB_STATIC_APRUTIL1} STATIC IMPORTED)
-set_property(TARGET ${LIB_STATIC_APRUTIL1} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/libaprutil-1.${STATIC_LIB_EXTENSION}")
+set_property(TARGET ${LIB_STATIC_APRUTIL1} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/${LIB_PREFIX}aprutil-1.${STATIC_LIB_EXTENSION}")
 
 set(LIB_STATIC_Z z)
 add_library(${LIB_STATIC_Z} STATIC IMPORTED)
@@ -536,18 +560,30 @@ set_property(TARGET ${LIB_STATIC_Z} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR
 
 set(LIB_STATIC_YAML yaml)
 add_library(${LIB_STATIC_YAML} STATIC IMPORTED)
-set_property(TARGET ${LIB_STATIC_YAML} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/libyaml.${STATIC_LIB_EXTENSION}")
+set_property(TARGET ${LIB_STATIC_YAML} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/${LIB_PREFIX}yaml.${STATIC_LIB_EXTENSION}")
 
 if(SOLARIS)
   set(LIB_STATIC_YAML_CPP yaml-cpp)
   add_library(${LIB_STATIC_YAML_CPP} STATIC IMPORTED)
-  set_property(TARGET ${LIB_STATIC_YAML_CPP} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/libyaml-cpp.${STATIC_LIB_EXTENSION}")
+  set_property(TARGET ${LIB_STATIC_YAML_CPP} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/${LIB_PREFIX}yaml-cpp.${STATIC_LIB_EXTENSION}")
 endif()
 
 if(WINDOWS)
+  set(LIB_STATIC_APRICONV1 apriconv-1)
+  add_library(${LIB_STATIC_APRICONV1} STATIC IMPORTED)
+  set_property(TARGET ${LIB_STATIC_APRICONV1} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/${LIB_PREFIX}apriconv-1.${STATIC_LIB_EXTENSION}")
+
   set(LIB_STATIC_PCRE pcre)
   add_library(${LIB_STATIC_PCRE} STATIC IMPORTED)
-  set_property(TARGET ${LIB_STATIC_PCRE} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/libpcre.${STATIC_LIB_EXTENSION}")
+  set_property(TARGET ${LIB_STATIC_PCRE} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/pcre.${STATIC_LIB_EXTENSION}")
+
+  set(LIB_STATIC_PCREPOSIX pcreposix)
+  add_library(${LIB_STATIC_PCREPOSIX} STATIC IMPORTED)
+  set_property(TARGET ${LIB_STATIC_PCREPOSIX} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/pcreposix.${STATIC_LIB_EXTENSION}")
+
+  set(LIB_STATIC_YAML_CPP yaml-cppmd)
+  add_library(${LIB_STATIC_YAML_CPP} STATIC IMPORTED)
+  set_property(TARGET ${LIB_STATIC_YAML_CPP} PROPERTY IMPORTED_LOCATION "${REPOSITORY_DIR}/external/${NTA_PLATFORM_OS}/lib/yaml-cppmd.${STATIC_LIB_EXTENSION}")
 endif()
 
 #
@@ -561,6 +597,17 @@ if(SOLARIS)
     ${LIB_STATIC_APRUTIL1}
     ${LIB_STATIC_Z}
   )
+elseif(WINDOWS)
+  set(NTA_STANDARD_LIBS
+    ${LIB_STATIC_PCRE}
+    ${LIB_STATIC_PCREPOSIX}
+    ${LIB_STATIC_YAML}
+    ${LIB_STATIC_YAML_CPP}
+    ${LIB_STATIC_APR1}
+    ${LIB_STATIC_APRUTIL1}
+    ${LIB_STATIC_APRICONV1}
+    ${LIB_STATIC_Z}
+  )
 else()
   set(NTA_STANDARD_LIBS
     ${LIB_STATIC_YAML}
@@ -568,6 +615,10 @@ else()
     ${LIB_STATIC_APRUTIL1}
     ${LIB_STATIC_Z}
   )
+endif()
+
+if(WINDOWS)
+  set(NTA_APPLICATION_LIBS Ws2_32.lib msvcprt.lib msvcrt.lib)
 endif()
 
 #
@@ -584,6 +635,7 @@ message(STATUS "Configuring subprojects...")
 #
 set(LIB_STATIC_NUPICCORE nupic_core)
 generate_static_library(${LIB_STATIC_NUPICCORE} "${PROJECT_SOURCE_DIR}/main" "${PROJECT_BUILD_TEMP_DIR}/lib" "${NTA_CXXFLAGS}")
+
 #
 # HtmTest
 #
@@ -591,6 +643,7 @@ set(EXECUTABLE_HTMTEST testcpphtm)
 set(LIBRARIES
   ${LIB_STATIC_NUPICCORE}
   ${NTA_STANDARD_LIBS}
+  ${NTA_APPLICATION_LIBS}
   ${NTA_TEST_LIBS}
 )
 generate_executable(${EXECUTABLE_HTMTEST} "${PROJECT_SOURCE_DIR}/test/htmtest" "${CMAKE_INSTALL_PREFIX}/bin" "${NTA_CXXFLAGS}" "${NTA_LINKFLAGS}" "${LIBRARIES}")
@@ -602,6 +655,7 @@ set(EXECUTABLE_TESTEVERYTHING testeverything)
 set(LIBRARIES
   ${LIB_STATIC_NUPICCORE}
   ${NTA_STANDARD_LIBS}
+  ${NTA_APPLICATION_LIBS}
   ${NTA_TEST_LIBS}
 )
 generate_executable(${EXECUTABLE_TESTEVERYTHING} "${PROJECT_SOURCE_DIR}/test/testeverything" "${CMAKE_INSTALL_PREFIX}/bin" "${NTA_CXXFLAGS}" "${NTA_LINKFLAGS}" "${LIBRARIES}")
@@ -613,6 +667,7 @@ set(EXECUTABLE_HELLOREGION helloregion)
 set(LIBRARIES
   ${LIB_STATIC_NUPICCORE}
   ${NTA_STANDARD_LIBS}
+  ${NTA_APPLICATION_LIBS}
   ${NTA_TEST_LIBS}
 )
 generate_executable(${EXECUTABLE_HELLOREGION} "${PROJECT_SOURCE_DIR}/examples/regions" "${CMAKE_INSTALL_PREFIX}/bin" "${NTA_CXXFLAGS}" "${NTA_LINKFLAGS}" "${LIBRARIES}")
@@ -705,4 +760,5 @@ add_custom_target(distclean
 message(STATUS "")
 
 message(STATUS "${CMAKE_INSTALL_PREFIX}")
+
 

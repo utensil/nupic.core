@@ -23,7 +23,9 @@
 /** @file 
 */
 
+#if !defined(NTA_PLATFORM_win32)
 #include <unistd.h>
+#endif
 #include <string>
 #include <algorithm>
 #include <nta/os/Directory.hpp>
@@ -216,10 +218,20 @@ namespace nta
       }
 
       // non-recursive case
-      bool success = true;
+      bool success;
     #ifdef NTA_PLATFORM_win32
       std::wstring wPath = Path::utf8ToUnicode(path);
       success = ::CreateDirectoryW(wPath.c_str(), NULL) != FALSE;
+	  if (!success)
+      {
+		  if (GetLastError() == ERROR_ALREADY_EXISTS) {
+			  // Not a hard error, due to potential race conditions.
+			  std::cerr << "Path '" << path << "' exists. "
+				  "Possible race condition." 
+				  << std::endl;
+			  success = Path::isDirectory(path);
+		  }
+      }
 
     #else
       int permissions = S_IRWXU;
@@ -242,11 +254,8 @@ namespace nta
       else success = true;
     #endif
 
-      if (!success) 
-      {
-        NTA_THROW << "Directory::create -- failed to create directory \"" << path << "\".\n"
-                  << "OS Error: " << OS::getErrorMessage();
-      }
+      NTA_CHECK(success) << "Directory::create -- failed to create directory \"" << path << "\". "
+						 << "OS Error: " << OS::getErrorMessage();
     }
     
 
