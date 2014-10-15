@@ -53,7 +53,7 @@ void NetworkTest::test_nupic_auto_initialization()
   if (NuPIC::isInitialized())
     NuPIC::shutdown();
 
-  TEST(!NuPIC::isInitialized());
+  TEST(NuPIC::isInitialized());
     
   // creating a network should auto-initialize NuPIC
   {
