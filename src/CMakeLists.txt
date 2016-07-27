@@ -25,7 +25,6 @@ project(nupic_core CXX)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_VERBOSE_MAKEFILE OFF) # toggle for cmake debug
 
-
 if( POLICY CMP0046 )
   cmake_policy(VERSION 2.8)
   # The new policy for add_dependencies is to now error if a dependency target
@@ -60,7 +59,9 @@ endif()
 #
 
 set(src_compile_flags "${INTERNAL_CXX_FLAGS_OPTIMIZED}")
+set(src_link_flags "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
 set(swig_generated_file_compile_flags "${EXTERNAL_CXX_FLAGS_OPTIMIZED}")
+set(src_external_link_flags "${EXTERNAL_LINKER_FLAGS_OPTIMIZED}")
 
 if(MINGW)
   # This is for GCC 4.8.x
@@ -181,7 +182,28 @@ add_library(${src_lib_static_gtest}
             ${REPOSITORY_DIR}/external/common/src/gtest/gtest-all.cpp)
 set_target_properties(${src_lib_static_gtest}
                       PROPERTIES COMPILE_FLAGS "${src_compile_flags}"
-                      LINK_FLAGS "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
+                      LINK_FLAGS "${src_link_flags}")
+
+#
+# Enable/disable Coverage (this option is mainly used for generating test coverage reports).
+#
+option(NTA_COV_ENABLED "-DNTA_COV_ENABLED=[ON/OFF] turn on test coverage [default=OFF]" OFF)
+if(NTA_COV_ENABLED)
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+    set(src_compile_flags "${src_compile_flags} --coverage")
+    set(src_link_flags "${src_link_flags} --coverage")
+    set(src_external_link_flags "${src_external_link_flags} --coverage")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
+  elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    set(src_compile_flags "${src_compile_flags} --coverage")
+    set(src_link_flags "${src_link_flags} --coverage")
+    set(src_external_link_flags "${src_external_link_flags} --coverage")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
+  else()
+    message(STATUS "  Warning: Coverage can't be enabled yet unless the compiler is gcc or clang, ignoring...")
+  endif()
+endif()
+message(STATUS "Coverage: ${NTA_COV_ENABLED}")
 
 #
 # Setup for python
@@ -367,9 +389,9 @@ set(src_lib_static_nupiccore_solo_link_libs
 
 set(src_lib_static_nupiccore_compile_flags
     "${src_compile_flags} -I${src_numpy_core}/include")
-# TODO Does the static library nupiccore_solo need the flags from INTERNAL_LINKER_FLAGS_OPTIMIZED?
+# TODO Does the static library nupiccore_solo need the flags from src_link_flags?
 set(src_lib_static_nupiccore_link_flags
-    "${INTERNAL_LINKER_FLAGS_OPTIMIZED} -static")
+    "${src_link_flags} -static")
 
 add_library(${src_lib_static_nupiccore_solo} STATIC ${src_lib_static_nupiccore_srcs})
 add_dependencies(${src_lib_static_nupiccore_solo}
@@ -404,7 +426,7 @@ set(src_executable_cppregiontest cpp_region_test)
 add_executable(${src_executable_cppregiontest} test/integration/CppRegionTest.cpp)
 target_link_libraries(${src_executable_cppregiontest} ${src_common_libs})
 set_target_properties(${src_executable_cppregiontest} PROPERTIES COMPILE_FLAGS ${src_compile_flags})
-set_target_properties(${src_executable_cppregiontest} PROPERTIES LINK_FLAGS "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
+set_target_properties(${src_executable_cppregiontest} PROPERTIES LINK_FLAGS "${src_link_flags}")
 add_custom_target(tests_cpp_region
                   COMMAND ${src_executable_cppregiontest}
                   DEPENDS ${src_executable_cppregiontest}
@@ -419,7 +441,7 @@ target_link_libraries(${src_executable_pyregiontest} ${src_common_libs})
 set_target_properties(${src_executable_pyregiontest}
                       PROPERTIES COMPILE_FLAGS ${src_compile_flags})
 set_target_properties(${src_executable_pyregiontest}
-                      PROPERTIES LINK_FLAGS "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
+                      PROPERTIES LINK_FLAGS "${src_link_flags}")
 add_custom_target(tests_py_region
                   COMMAND ${src_executable_pyregiontest}
                   DEPENDS ${src_executable_pyregiontest}
@@ -436,7 +458,7 @@ target_link_libraries(${src_executable_connectionsperformancetest} ${src_common_
 set_target_properties(${src_executable_connectionsperformancetest}
                       PROPERTIES COMPILE_FLAGS ${src_compile_flags})
 set_target_properties(${src_executable_connectionsperformancetest}
-                      PROPERTIES LINK_FLAGS "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
+                      PROPERTIES LINK_FLAGS "${src_link_flags}")
 add_custom_target(tests_connections_performance
                   COMMAND ${src_executable_connectionsperformancetest}
                   DEPENDS ${src_executable_connectionsperformancetest}
@@ -451,7 +473,7 @@ target_link_libraries(${src_executable_helloregion} ${src_common_libs})
 set_target_properties(${src_executable_helloregion}
                       PROPERTIES COMPILE_FLAGS ${src_compile_flags})
 set_target_properties(${src_executable_helloregion}
-                      PROPERTIES LINK_FLAGS "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
+                      PROPERTIES LINK_FLAGS "${src_link_flags}")
 add_dependencies(${src_executable_helloregion} ${src_common_libs})
 
 #
@@ -463,7 +485,7 @@ target_link_libraries(${src_executable_prototest} ${src_common_libs})
 set_target_properties(${src_executable_prototest}
                       PROPERTIES COMPILE_FLAGS ${src_compile_flags})
 set_target_properties(${src_executable_prototest}
-                      PROPERTIES LINK_FLAGS "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
+                      PROPERTIES LINK_FLAGS "${src_link_flags}")
 add_dependencies(${src_executable_prototest} ${src_common_libs})
 
 #
@@ -475,7 +497,7 @@ target_link_libraries(${src_executable_hellosptp} ${src_common_libs})
 set_target_properties(${src_executable_hellosptp}
                       PROPERTIES COMPILE_FLAGS ${src_compile_flags})
 set_target_properties(${src_executable_hellosptp}
-                      PROPERTIES LINK_FLAGS "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
+                      PROPERTIES LINK_FLAGS "${src_link_flags}")
 add_dependencies(${src_executable_hellosptp} ${src_common_libs})
 
 
@@ -530,16 +552,19 @@ add_executable(${src_executable_gtests}
                test/unit/utils/MovingAverageTest.cpp
                test/unit/utils/RandomTest.cpp
                test/unit/utils/WatcherTest.cpp)
+
 target_link_libraries(${src_executable_gtests}
                       ${src_lib_static_gtest}
                       ${src_common_libs})
 set_target_properties(${src_executable_gtests}
                       PROPERTIES COMPILE_FLAGS ${src_compile_flags}
-                                 LINK_FLAGS "${INTERNAL_LINKER_FLAGS_OPTIMIZED}")
+                                 LINK_FLAGS "${src_link_flags}")
+
 add_custom_target(tests_unit
                   COMMAND ${src_executable_gtests}
                   DEPENDS ${src_executable_gtests}
                   VERBATIM)
+
 add_dependencies(${src_executable_gtests} ${src_lib_static_gtest} ${src_common_libs})
 
 #
@@ -605,161 +630,162 @@ endif()
 add_custom_target(LibStaticNupicCoreCombinedTarget
                   DEPENDS ${src_lib_static_nupiccore_combined})
 
-#
-# Call SWIG to generate wrapper code for Python.
-#
-include(UseSWIG)
+if(NOT NTA_COV_ENABLED)
+  #
+  # Call SWIG to generate wrapper code for Python.
+  #
+  include(UseSWIG)
 
-# Set the output location for the language modules that are created.
-set(CMAKE_SWIG_OUTDIR ${PROJECT_BINARY_DIR})
+  # Set the output location for the language modules that are created.
+  set(CMAKE_SWIG_OUTDIR ${PROJECT_BINARY_DIR})
 
-# Make sure the directory exists for the generated C++ files.
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/nupic/bindings)
+  # Make sure the directory exists for the generated C++ files.
+  file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/nupic/bindings)
 
-# SWIG options from:
-# https://github.com/swig/swig/blob/master/Source/Modules/python.cxx#L111
-set(src_swig_flags
-    -features
-    autodoc=0,directors=0
-    -noproxyimport
-    -keyword
-    -modern
-    -modernargs
-    -noproxydel
-    -fvirtual
-    -fastunpack
-    -nofastproxy
-    -fastquery
-    -outputtuple
-    -castmode
-    -nosafecstrings
-    -w402
-    -w503
-    -w511
-    -w302
-    -w362
-    -w312
-    -w389
-    -DSWIG_PYTHON_LEGACY_BOOL
-    -I${SWIG_DIR}/python
-    -I${SWIG_DIR}
-    ${src_compiler_definitions}
-)
+  # SWIG options from:
+  # https://github.com/swig/swig/blob/master/Source/Modules/python.cxx#L111
+  set(src_swig_flags
+      -features
+      autodoc=0,directors=0
+      -noproxyimport
+      -keyword
+      -modern
+      -modernargs
+      -noproxydel
+      -fvirtual
+      -fastunpack
+      -nofastproxy
+      -fastquery
+      -outputtuple
+      -castmode
+      -nosafecstrings
+      -w402
+      -w503
+      -w511
+      -w302
+      -w362
+      -w312
+      -w389
+      -DSWIG_PYTHON_LEGACY_BOOL
+      -I${SWIG_DIR}/python
+      -I${SWIG_DIR}
+      ${src_compiler_definitions}
+  )
 
-set(src_swig_support_files
-    nupic/py_support/NumpyVector.cpp
-    nupic/py_support/PyArray.cpp
-    nupic/py_support/PyHelpers.cpp
-    nupic/py_support/PythonStream.cpp
-    nupic/bindings/PySparseTensor.cpp
-)
+  set(src_swig_support_files
+      nupic/py_support/NumpyVector.cpp
+      nupic/py_support/PyArray.cpp
+      nupic/py_support/PyHelpers.cpp
+      nupic/py_support/PythonStream.cpp
+      nupic/bindings/PySparseTensor.cpp
+  )
 
-set(src_swig_link_libraries
-    ${src_lib_static_nupiccore_combined}
-    ${PYTHON_LIBRARIES}
-    ${src_common_os_libs})
+  set(src_swig_link_libraries
+      ${src_lib_static_nupiccore_combined}
+      ${PYTHON_LIBRARIES}
+      ${src_common_os_libs})
 
 
-set(src_swig_link_libraries
-    ${src_swig_link_libraries}
-    ${CAPNP_LINK_LIBRARIES})
+  set(src_swig_link_libraries
+      ${src_swig_link_libraries}
+      ${CAPNP_LINK_LIBRARIES})
 
-# Algorithms
-set(src_swig_algorithms_files nupic/bindings/algorithms.i)
-set_source_files_properties(${src_swig_algorithms_files} PROPERTIES
-                            CPLUSPLUS ON
-                            SWIG_MODULE_NAME algorithms
-                            SWIG_FLAGS "${src_swig_flags}")
-set(src_swig_algorithms algorithms)
-# Make sure we don't attempt to execute the swig executable until it is built.
-set(SWIG_MODULE_${src_swig_algorithms}_EXTRA_DEPS Swig LibStaticNupicCoreCombinedTarget)
-# Create custom command for generating files from SWIG.
-swig_add_module(${src_swig_algorithms} python
-                ${src_swig_support_files}
-                ${src_swig_algorithms_files})
-list(APPEND src_swig_generated_files ${swig_generated_file_fullname})
-swig_link_libraries(${src_swig_algorithms}
-                    ${src_swig_link_libraries})
+  # Algorithms
+  set(src_swig_algorithms_files nupic/bindings/algorithms.i)
+  set_source_files_properties(${src_swig_algorithms_files} PROPERTIES
+                              CPLUSPLUS ON
+                              SWIG_MODULE_NAME algorithms
+                              SWIG_FLAGS "${src_swig_flags}")
+  set(src_swig_algorithms algorithms)
+  # Make sure we don't attempt to execute the swig executable until it is built.
+  set(SWIG_MODULE_${src_swig_algorithms}_EXTRA_DEPS Swig LibStaticNupicCoreCombinedTarget)
+  # Create custom command for generating files from SWIG.
+  swig_add_module(${src_swig_algorithms} python
+                  ${src_swig_support_files}
+                  ${src_swig_algorithms_files})
+  list(APPEND src_swig_generated_files ${swig_generated_file_fullname})
+  swig_link_libraries(${src_swig_algorithms}
+                      ${src_swig_link_libraries})
 
-# Engine
-set(src_swig_engine_files nupic/bindings/engine_internal.i)
-set_source_files_properties(${src_swig_engine_files} PROPERTIES
-                            CPLUSPLUS ON
-                            SWIG_MODULE_NAME engine_internal
-                            SWIG_FLAGS "${src_swig_flags}")
-set(src_swig_engine engine_internal)
-# Make sure we don't attempt to execute the swig executable until it is built.
-set(SWIG_MODULE_${src_swig_engine}_EXTRA_DEPS Swig LibStaticNupicCoreCombinedTarget)
-# Create custom command for generating files from SWIG.
-swig_add_module(${src_swig_engine} python
-                ${src_swig_support_files}
-                ${src_swig_engine_files})
-list(APPEND src_swig_generated_files ${swig_generated_file_fullname})
-swig_link_libraries(${src_swig_engine}
-                    ${src_swig_link_libraries})
+  # Engine
+  set(src_swig_engine_files nupic/bindings/engine_internal.i)
+  set_source_files_properties(${src_swig_engine_files} PROPERTIES
+                              CPLUSPLUS ON
+                              SWIG_MODULE_NAME engine_internal
+                              SWIG_FLAGS "${src_swig_flags}")
+  set(src_swig_engine engine_internal)
+  # Make sure we don't attempt to execute the swig executable until it is built.
+  set(SWIG_MODULE_${src_swig_engine}_EXTRA_DEPS Swig LibStaticNupicCoreCombinedTarget)
+  # Create custom command for generating files from SWIG.
+  swig_add_module(${src_swig_engine} python
+                  ${src_swig_support_files}
+                  ${src_swig_engine_files})
+  list(APPEND src_swig_generated_files ${swig_generated_file_fullname})
+  swig_link_libraries(${src_swig_engine}
+                      ${src_swig_link_libraries})
 
-# Experimental
-set(src_swig_experimental_files nupic/bindings/experimental.i)
-set_source_files_properties(${src_swig_experimental_files} PROPERTIES
-                            CPLUSPLUS ON
-                            SWIG_MODULE_NAME experimental
-                            SWIG_FLAGS "${src_swig_flags}")
-set(src_swig_experimental experimental)
-# Make sure we don't attempt to execute the swig executable until it is built.
-set(SWIG_MODULE_${src_swig_experimental}_EXTRA_DEPS Swig LibStaticNupicCoreCombinedTarget)
-# Create custom command for generating files from SWIG.
-swig_add_module(${src_swig_experimental} python
-                ${src_swig_support_files}
-                ${src_swig_experimental_files})
-list(APPEND src_swig_generated_files ${swig_generated_file_fullname})
-swig_link_libraries(${src_swig_experimental}
-                    ${src_swig_link_libraries})
+  # Experimental
+  set(src_swig_experimental_files nupic/bindings/experimental.i)
+  set_source_files_properties(${src_swig_experimental_files} PROPERTIES
+                              CPLUSPLUS ON
+                              SWIG_MODULE_NAME experimental
+                              SWIG_FLAGS "${src_swig_flags}")
+  set(src_swig_experimental experimental)
+  # Make sure we don't attempt to execute the swig executable until it is built.
+  set(SWIG_MODULE_${src_swig_experimental}_EXTRA_DEPS Swig LibStaticNupicCoreCombinedTarget)
+  # Create custom command for generating files from SWIG.
+  swig_add_module(${src_swig_experimental} python
+                  ${src_swig_support_files}
+                  ${src_swig_experimental_files})
+  list(APPEND src_swig_generated_files ${swig_generated_file_fullname})
+  swig_link_libraries(${src_swig_experimental}
+                      ${src_swig_link_libraries})
 
-# Math
-set(src_swig_math_files nupic/bindings/math.i)
-set_source_files_properties(${src_swig_math_files} PROPERTIES
-                            CPLUSPLUS ON
-                            SWIG_MODULE_NAME math
-                            SWIG_FLAGS "${src_swig_flags}")
-set(src_swig_math math)
-# Make sure we don't attempt to execute the swig executable until it is built.
-set(SWIG_MODULE_${src_swig_math}_EXTRA_DEPS Swig LibStaticNupicCoreCombinedTarget)
-# Create custom command for generating files from SWIG.
-swig_add_module(${src_swig_math} python
-                ${src_swig_support_files}
-                ${src_swig_math_files})
-list(APPEND src_swig_generated_files ${swig_generated_file_fullname})
-swig_link_libraries(${src_swig_math}
-                    ${src_swig_link_libraries})
+  # Math
+  set(src_swig_math_files nupic/bindings/math.i)
+  set_source_files_properties(${src_swig_math_files} PROPERTIES
+                              CPLUSPLUS ON
+                              SWIG_MODULE_NAME math
+                              SWIG_FLAGS "${src_swig_flags}")
+  set(src_swig_math math)
+  # Make sure we don't attempt to execute the swig executable until it is built.
+  set(SWIG_MODULE_${src_swig_math}_EXTRA_DEPS Swig LibStaticNupicCoreCombinedTarget)
+  # Create custom command for generating files from SWIG.
+  swig_add_module(${src_swig_math} python
+                  ${src_swig_support_files}
+                  ${src_swig_math_files})
+  list(APPEND src_swig_generated_files ${swig_generated_file_fullname})
+  swig_link_libraries(${src_swig_math}
+                      ${src_swig_link_libraries})
 
-set_source_files_properties(${src_swig_generated_files} PROPERTIES
-                            GENERATED TRUE)
-set_source_files_properties(${src_swig_generated_files}
-                            PROPERTIES
-                            COMPILE_FLAGS ${swig_generated_file_compile_flags}
-                            LINK_FLAGS ${EXTERNAL_LINKER_FLAGS_OPTIMIZED})
+  set_source_files_properties(${src_swig_generated_files} PROPERTIES
+                              GENERATED TRUE)
+  set_source_files_properties(${src_swig_generated_files}
+                              PROPERTIES
+                              COMPILE_FLAGS ${swig_generated_file_compile_flags}
+                              LINK_FLAGS ${EXTERNAL_LINKER_FLAGS_OPTIMIZED})
 
-set_source_files_properties(${src_swig_support_files}
-                            PROPERTIES
-                            COMPILE_FLAGS ${src_compile_flags}
-                            LINK_FLAGS ${EXTERNAL_LINKER_FLAGS_OPTIMIZED})
+  set_source_files_properties(${src_swig_support_files}
+                              PROPERTIES
+                              COMPILE_FLAGS ${src_compile_flags}
+                              LINK_FLAGS ${EXTERNAL_LINKER_FLAGS_OPTIMIZED})
 
-# If a path is specified, copy extensions files to proper location.
-if (PY_EXTENSIONS_DIR)
-  install(TARGETS
-          ${SWIG_MODULE_${src_swig_algorithms}_REAL_NAME}
-          ${SWIG_MODULE_${src_swig_engine}_REAL_NAME}
-          ${SWIG_MODULE_${src_swig_experimental}_REAL_NAME}
-          ${SWIG_MODULE_${src_swig_math}_REAL_NAME}
-          LIBRARY DESTINATION ${PY_EXTENSIONS_DIR})
-  install(FILES
-          ${PROJECT_BINARY_DIR}/algorithms.py
-          ${PROJECT_BINARY_DIR}/engine_internal.py
-          ${PROJECT_BINARY_DIR}/experimental.py
-          ${PROJECT_BINARY_DIR}/math.py
-          DESTINATION ${PY_EXTENSIONS_DIR})
-endif(PY_EXTENSIONS_DIR)
-
+  # If a path is specified, copy extensions files to proper location.
+  if (PY_EXTENSIONS_DIR)
+    install(TARGETS
+            ${SWIG_MODULE_${src_swig_algorithms}_REAL_NAME}
+            ${SWIG_MODULE_${src_swig_engine}_REAL_NAME}
+            ${SWIG_MODULE_${src_swig_experimental}_REAL_NAME}
+            ${SWIG_MODULE_${src_swig_math}_REAL_NAME}
+            LIBRARY DESTINATION ${PY_EXTENSIONS_DIR})
+    install(FILES
+            ${PROJECT_BINARY_DIR}/algorithms.py
+            ${PROJECT_BINARY_DIR}/engine_internal.py
+            ${PROJECT_BINARY_DIR}/experimental.py
+            ${PROJECT_BINARY_DIR}/math.py
+            DESTINATION ${PY_EXTENSIONS_DIR})
+  endif(PY_EXTENSIONS_DIR)
+endif()
 
 #
 # Install targets into CMAKE_INSTALL_PREFIX

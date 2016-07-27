@@ -51,7 +51,7 @@
                             $('.filter option:selected').each(function() {
                                 $('.testcases div').show();
                                 if ( self.val() != 'all' ) {
-                                    $('.testcases > div[class != "' + $(this).val() + '"][class!="error-message"]').each(function() {
+                                    $('.testcases > div[class != "' + $(self).val() + '"][class!="error-message"]').each(function() {
                                         $(this).hide();
                                     });
                                 }
@@ -84,7 +84,7 @@
 
             <div class="filters">
                 <label for="filter">Filter Test cases:</label>
-                <select id="filter" class="filter">
+                <select class="filter">
                     <option name="all" value="all" selected="true">All</option>
                     <option name="passed" value="passed">Passed</option>
                     <option name="failed" value="failed">Failed</option>
